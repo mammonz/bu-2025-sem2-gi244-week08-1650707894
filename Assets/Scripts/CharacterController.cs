@@ -69,6 +69,8 @@ public class CharacterController : MonoBehaviour
         if (anim != null)
         {
             float speed = Mathf.Abs(moveInput.y);
+            anim.SetFloat(moveParameter, speed);
+            anim.SetBool(crouchParameter, isCrouching);
         }
     }
 }
