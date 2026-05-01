@@ -11,14 +11,17 @@ public class PlayerController : MonoBehaviour
     // 5.8 add audio source variable to play crash sound
     private AudioSource audioSource;
 
-    public bool isOnGround = true;
+    private bool isOnGround = true;
+    public GameObject gameOverCanvas;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         jumpAction = InputSystem.actions.FindAction("Jump");
         jumpAction?.Enable();
-        // 5.8 get audio source component, if not exist, add one
+
+        gameOverCanvas.SetActive(false);
+
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
@@ -35,12 +38,8 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (gameOver)
-        {
-            return;
-        }
         
-        if (jumpAction.triggered && isOnGround)
+        if (jumpAction.triggered && isOnGround && !gameOver)
         {
             rb.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
             isOnGround = false;
@@ -57,6 +56,11 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log("Game Over!");
             gameOver = true;
+            GameOver();
         }
+    }
+    public void GameOver()
+    {
+        gameOverCanvas.SetActive(true);
     }
 }
