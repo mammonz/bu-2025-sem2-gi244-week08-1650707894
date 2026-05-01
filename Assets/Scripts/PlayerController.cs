@@ -11,13 +11,13 @@ public class PlayerController : MonoBehaviour
     // 5.8 add audio source variable to play crash sound
     private AudioSource audioSource;
 
-    private bool isOnGround = true;
+    public bool isOnGround = true;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         jumpAction = InputSystem.actions.FindAction("Jump");
-
+        jumpAction?.Enable();
         // 5.8 get audio source component, if not exist, add one
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
@@ -39,7 +39,7 @@ public class PlayerController : MonoBehaviour
         {
             return;
         }
-
+        
         if (jumpAction.triggered && isOnGround)
         {
             rb.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
