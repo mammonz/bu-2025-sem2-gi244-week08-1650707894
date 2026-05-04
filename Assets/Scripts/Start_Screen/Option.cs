@@ -5,27 +5,12 @@ public class Option : MonoBehaviour
 {
     public GameObject canVas;
     public Toggle soundToggle;
-    private AudioSource audioSource;
     private static Option instance;
 
     public bool isSoundEnabled = true;
 
     private void Awake()
     {
-        audioSource = GetComponent<AudioSource>();
-        if (audioSource == null)
-        {
-            audioSource = gameObject.AddComponent<AudioSource>();
-        }
-
-        canVas.SetActive(false);
-
-        if (soundToggle != null)
-        {
-            soundToggle.isOn = isSoundEnabled;
-            soundToggle.onValueChanged.AddListener(OnToggleSound);
-        }
-
         if (instance == null)
         {
             instance = this;
@@ -36,6 +21,16 @@ public class Option : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        if (canVas != null) canVas.SetActive(false);
+
+        if (soundToggle != null)
+        {
+            soundToggle.isOn = isSoundEnabled;
+            soundToggle.onValueChanged.AddListener(OnToggleSound);
+        }
+
+        ApplySoundSettings();
     }
 
     public void Open_Canvas()
@@ -51,7 +46,10 @@ public class Option : MonoBehaviour
     public void OnToggleSound(bool isOn)
     {
         isSoundEnabled = isOn;
-
-        audioSource.mute = !isOn;
+        ApplySoundSettings();
+    }
+    private void ApplySoundSettings()
+    {
+        AudioListener.volume = isSoundEnabled ? 1f : 0f;
     }
 }
