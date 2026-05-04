@@ -12,15 +12,14 @@ public class PlayerController : MonoBehaviour
     private AudioSource audioSource;
 
     private bool isOnGround = true;
-    public GameObject gameOverCanvas;
 
+    public Score score;
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         jumpAction = InputSystem.actions.FindAction("Jump");
         jumpAction?.Enable();
 
-        gameOverCanvas.SetActive(false);
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
@@ -61,6 +60,6 @@ public class PlayerController : MonoBehaviour
     }
     public void GameOver()
     {
-        gameOverCanvas.SetActive(true);
+        score.OnPlayerDeath();
     }
 }
