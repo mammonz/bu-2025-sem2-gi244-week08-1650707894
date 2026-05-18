@@ -18,17 +18,30 @@ public class PlayerController : MonoBehaviour
 
     private Rigidbody rb;
     private InputAction jumpAction;
-    // 5.8 add audio source variable to play crash sound
     private AudioSource audioSource;
+    
 
     private bool isOnGround = true;
+    private bool isGravityFlipped = false;
+    private float originalGravityY;
+
+    // F3: Item states
+    public bool IsImmortal { get; private set; }
+    public bool HasSpeedBoost { get; private set; }
+    private float immortalTimer;
+    private float speedBoostTimer;
+
+    [Header("Item Visuals")]
+    public GameObject immortalEffect;
+    public GameObject speedBoostEffect;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody>();
         jumpAction = InputSystem.actions.FindAction("Jump");
+        if (jumpAction != null && !jumpAction.enabled)
+            jumpAction.Enable();
 
-        // 5.8 get audio source component, if not exist, add one
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null)
         {
@@ -36,15 +49,25 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        Physics.gravity *= gravityMultiplier;
+        originalGravityY = Physics.gravity.y;
+        Physics.gravity = new Vector3(0, originalGravityY * gravityMultiplier, 0);
 
-        animator.SetFloat("Speed_f", 1.0f) ;
+        animator.SetFloat("Speed_f", 1.0f);
+
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnZoneChanged += HandleZoneChanged;
     }
 
-    // Update is called once per frame
+    private void OnDestroy()
+    {
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnZoneChanged -= HandleZoneChanged;
+
+        Physics.gravity = new Vector3(0, originalGravityY, 0);
+    }
+
     void Update()
     {
         if (gameOver)
@@ -54,11 +77,81 @@ public class PlayerController : MonoBehaviour
 
         if (jumpAction.triggered && isOnGround)
         {
-            rb.AddForce(jumpForce * Vector3.up, ForceMode.Impulse);
+            //Debug.Log("Jump");
+            float direction = isGravityFlipped ? -1f : 1f;
+            rb.AddForce(jumpForce * direction * Vector3.up, ForceMode.Impulse);
             isOnGround = false;
             animator.SetTrigger("Jump_trig");
             fxDirt.Stop();
             audioSource.PlayOneShot(sfxJump);
+        }
+
+        UpdateItemTimers();
+    }
+
+    // F1: Gravity flip for UpsideDown zone
+    private void HandleZoneChanged(ZoneType zone)
+    {
+        if (zone == ZoneType.UpsideDown)
+            FlipGravity(true);
+        else if (isGravityFlipped)
+            FlipGravity(false);
+    }
+
+    private void FlipGravity(bool flipped)
+    {
+        isGravityFlipped = flipped;
+        float gravY = Mathf.Abs(originalGravityY) * gravityMultiplier;
+        Physics.gravity = new Vector3(0, flipped ? gravY : -gravY, 0);
+
+        Vector3 scale = transform.localScale;
+        scale.y = flipped ? -Mathf.Abs(scale.y) : Mathf.Abs(scale.y);
+        transform.localScale = scale;
+    }
+
+    // F3: Item activation
+    public void ActivateSpeedBoost(float duration, float multiplier)
+    {
+        HasSpeedBoost = true;
+        speedBoostTimer = duration;
+        if (GameManager.Instance != null)
+            GameManager.Instance.SpeedMultiplier = multiplier;
+        if (speedBoostEffect != null)
+            speedBoostEffect.SetActive(true);
+    }
+
+    public void ActivateImmortality(float duration)
+    {
+        IsImmortal = true;
+        immortalTimer = duration;
+        if (immortalEffect != null)
+            immortalEffect.SetActive(true);
+    }
+
+    private void UpdateItemTimers()
+    {
+        if (HasSpeedBoost)
+        {
+            speedBoostTimer -= Time.deltaTime;
+            if (speedBoostTimer <= 0f)
+            {
+                HasSpeedBoost = false;
+                if (GameManager.Instance != null)
+                    GameManager.Instance.SpeedMultiplier = 1f;
+                if (speedBoostEffect != null)
+                    speedBoostEffect.SetActive(false);
+            }
+        }
+
+        if (IsImmortal)
+        {
+            immortalTimer -= Time.deltaTime;
+            if (immortalTimer <= 0f)
+            {
+                IsImmortal = false;
+                if (immortalEffect != null)
+                    immortalEffect.SetActive(false);
+            }
         }
     }
 
@@ -71,6 +164,13 @@ public class PlayerController : MonoBehaviour
         }
         else if (collision.gameObject.CompareTag("Obstacle"))
         {
+            // F3: Immortal = destroy obstacle instead of dying
+            if (IsImmortal)
+            {
+                Destroy(collision.gameObject);
+                return;
+            }
+
             Debug.Log("Game Over!");
             gameOver = true;
 
@@ -81,6 +181,17 @@ public class PlayerController : MonoBehaviour
             Instantiate(fxExplosion, transform.position, Quaternion.identity);
 
             audioSource.PlayOneShot(sfxCrash);
+        }
+    }
+
+    // F2: Coin collection
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Coin"))
+        {
+            if (ScoreManager.Instance != null)
+                ScoreManager.Instance.AddCoin();
+            Destroy(other.gameObject);
         }
     }
 }

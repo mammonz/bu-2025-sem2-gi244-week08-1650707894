@@ -4,16 +4,8 @@ public class MoveLeft : MonoBehaviour
 {
     public float speed = 10f;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
     void Update()
     {
-        // 1.17 stop moving left when the game is over
         GameObject player = GameObject.Find("Player");
         bool isGameOver = player.GetComponent<PlayerController>().gameOver;
         if (isGameOver)
@@ -21,9 +13,17 @@ public class MoveLeft : MonoBehaviour
             speed = 0;
         }
 
-        transform.Translate(Vector3.left * speed * Time.deltaTime);
+        // F3: Apply speed multiplier from GameManager
+        float speedMult = GameManager.Instance != null ? GameManager.Instance.SpeedMultiplier : 1f;
+        transform.Translate(Vector3.left * speed * speedMult * Time.deltaTime);
 
         if (transform.position.x < -15 && gameObject.CompareTag("Obstacle"))
+        {
+            Destroy(gameObject);
+        }
+
+        // Cleanup coins and items that passed the player
+        if (transform.position.x < -15 && (gameObject.CompareTag("Coin") || gameObject.CompareTag("Item")))
         {
             Destroy(gameObject);
         }
